@@ -5,6 +5,9 @@ on:
   push:
     branches: [ main, master ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-latest
@@ -24,3 +27,7 @@ jobs:
         with:
           name: PhatTrack-AU
           path: PhatTrack-AU.zip
+      - name: Publish latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release view latest >/dev/null 2>&1 || gh release create latest --title "Latest build" --notes "Newest PhatTrack build"; gh release upload latest PhatTrack-AU.zip --clobber
