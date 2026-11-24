@@ -31,8 +31,8 @@ namespace
         // master
         addChoice (ids::octave,  "Octave", { "-2", "-1", "0", "+1", "+2" }, 2);
         addFloat  (ids::tune,    "Fine Tune", -100.0f, 100.0f, 0.0f, 1.0f, 0.1f);
-        addFloat  (ids::glide,   "Glide", 0.0f, 2.0f, 0.12f, 0.45f, 0.001f);
-        addBool   (ids::glideOn, "Glide On", false);
+        addFloat  (ids::glide,   "Glide", 0.0f, 2.0f, 0.06f, 0.45f, 0.001f);
+        addBool   (ids::glideOn, "Glide On", true);
         addFloat  (ids::volume,  "Volume", 0.0f, 1.5f, 0.8f);
 
         // oscillator 1
@@ -40,46 +40,81 @@ namespace
         addChoice (ids::o1Wave, "Osc 1 Wave", { "Triangle", "Sawtooth", "Square", "Pulse" }, 1);
         addFloat  (ids::o1Semi, "Osc 1 Semitone", -24.0f, 24.0f, 0.0f, 1.0f, 1.0f);
         addFloat  (ids::o1Det,  "Osc 1 Detune", -50.0f, 50.0f, 0.0f, 1.0f, 0.1f);
-        addFloat  (ids::o1Lvl,  "Osc 1 Level", 0.0f, 1.0f, 0.7f);
+        addFloat  (ids::o1Lvl,  "Osc 1 Level", 0.0f, 1.0f, 0.5f);
 
         // oscillator 2
-        addChoice (ids::o2Oct,  "Osc 2 Octave", { "16'", "8'", "4'", "2'" }, 1);
+        addChoice (ids::o2Oct,  "Osc 2 Octave", { "16'", "8'", "4'", "2'" }, 2);
         addChoice (ids::o2Wave, "Osc 2 Wave", { "Triangle", "Sawtooth", "Square", "Pulse" }, 1);
         addFloat  (ids::o2Semi, "Osc 2 Semitone", -24.0f, 24.0f, 0.0f, 1.0f, 1.0f);
-        addFloat  (ids::o2Det,  "Osc 2 Detune", -50.0f, 50.0f, 7.0f, 1.0f, 0.1f);
+        addFloat  (ids::o2Det,  "Osc 2 Detune", -50.0f, 50.0f, 0.0f, 1.0f, 0.1f);
         addFloat  (ids::o2Lvl,  "Osc 2 Level", 0.0f, 1.0f, 0.5f);
 
         // mixer extras
-        addBool   (ids::sync,  "Osc Sync", false);
-        addFloat  (ids::sub,   "Sub Level", 0.0f, 1.0f, 0.2f);
+        addBool   (ids::sync,  "Osc Sync", true);
+        addFloat  (ids::sub,   "Sub Level", 0.0f, 1.0f, 0.0f);
         addFloat  (ids::noise, "Noise Level", 0.0f, 1.0f, 0.0f);
 
         // filter
-        addFloat  (ids::cutoff,  "Cutoff", 20.0f, 18000.0f, 2400.0f, 0.3f, 0.1f);
-        addFloat  (ids::res,     "Resonance", 0.0f, 1.0f, 0.25f);
+        addFloat  (ids::cutoff,  "Cutoff", 20.0f, 18000.0f, 900.0f, 0.3f, 0.1f);
+        addFloat  (ids::res,     "Resonance", 0.0f, 1.0f, 0.30f);
         addFloat  (ids::keyTrk,  "Key Track", 0.0f, 1.0f, 0.5f);
-        addFloat  (ids::fEnvAmt, "Filter Env Amount", -1.0f, 1.0f, 0.45f);
-        addFloat  (ids::drive,   "Drive", 0.0f, 1.0f, 0.2f);
+        addFloat  (ids::fEnvAmt, "Filter Env Amount", -1.0f, 1.0f, 0.35f);
+        addFloat  (ids::drive,   "Drive", 0.0f, 1.0f, 0.30f);
 
         // envelopes
-        addFloat  (ids::fA, "Filter Attack",  0.001f, 8.0f, 0.015f, 0.35f);
-        addFloat  (ids::fD, "Filter Decay",   0.002f, 8.0f, 0.35f,  0.4f);
-        addFloat  (ids::fS, "Filter Sustain", 0.0f,   1.0f, 0.35f);
-        addFloat  (ids::fR, "Filter Release", 0.005f, 8.0f, 0.25f,  0.4f);
-        addFloat  (ids::aA, "Amp Attack",     0.001f, 8.0f, 0.008f, 0.35f);
-        addFloat  (ids::aD, "Amp Decay",      0.002f, 8.0f, 0.3f,   0.4f);
-        addFloat  (ids::aS, "Amp Sustain",    0.0f,   1.0f, 0.8f);
-        addFloat  (ids::aR, "Amp Release",    0.005f, 8.0f, 0.2f,   0.4f);
+        addFloat  (ids::fA, "Filter Attack",  0.001f, 8.0f, 0.005f, 0.35f);
+        addFloat  (ids::fD, "Filter Decay",   0.002f, 8.0f, 0.60f,  0.4f);
+        addFloat  (ids::fS, "Filter Sustain", 0.0f,   1.0f, 0.65f);
+        addFloat  (ids::fR, "Filter Release", 0.005f, 8.0f, 0.05f,  0.4f);
+        addFloat  (ids::aA, "Amp Attack",     0.001f, 8.0f, 0.003f, 0.35f);
+        addFloat  (ids::aD, "Amp Decay",      0.002f, 8.0f, 0.60f,  0.4f);
+        addFloat  (ids::aS, "Amp Sustain",    0.0f,   1.0f, 1.0f);
+        addFloat  (ids::aR, "Amp Release",    0.005f, 8.0f, 0.06f,  0.4f);
 
         // modulation
-        addFloat  (ids::lfoRate, "Mod Rate", 0.05f, 60.0f, 5.0f, 0.4f, 0.01f);
+        addFloat  (ids::lfoRate, "Mod Rate", 0.05f, 60.0f, 5.5f, 0.4f, 0.01f);
         addChoice (ids::modSrc,  "Mod Source",
                    { "Tri", "Square", "Saw", "Ramp", "Filt Env", "Osc 2", "S&H", "Noise" }, 0);
         addChoice (ids::modDst,  "Mod Destination", { "Pitch", "Osc 2", "Filter", "Wave" }, 0);
-        addFloat  (ids::modAmt,  "Mod Amount", 0.0f, 1.0f, 0.0f);
+        addFloat  (ids::modAmt,  "Mod Amount", 0.0f, 1.0f, 0.06f);
 
         return { params.begin(), params.end() };
     }
+}
+
+//==============================================================================
+// Factory preset "Thing of Gold": a two-saw synced mono lead. Values are in real units
+// (Hz, seconds, choice index, 0/1 for switches). They must match the parameter defaults above.
+const PresetValue* PhatTrackAudioProcessor::getThingOfGoldPreset (size_t& count)
+{
+    static const PresetValue table[] =
+    {
+        { ids::gate, -52.0f }, { ids::sens, 0.0f }, { ids::dry, 0.0f }, { ids::retrig, 1.0f },
+        { ids::octave, 2.0f }, { ids::tune, 0.0f }, { ids::glide, 0.06f }, { ids::glideOn, 1.0f }, { ids::volume, 0.8f },
+        { ids::o1Oct, 1.0f }, { ids::o1Wave, 1.0f }, { ids::o1Semi, 0.0f }, { ids::o1Det, 0.0f }, { ids::o1Lvl, 0.5f },
+        { ids::o2Oct, 2.0f }, { ids::o2Wave, 1.0f }, { ids::o2Semi, 0.0f }, { ids::o2Det, 0.0f }, { ids::o2Lvl, 0.5f },
+        { ids::sync, 1.0f }, { ids::sub, 0.0f }, { ids::noise, 0.0f },
+        { ids::cutoff, 900.0f }, { ids::res, 0.30f }, { ids::keyTrk, 0.5f }, { ids::fEnvAmt, 0.35f }, { ids::drive, 0.30f },
+        { ids::fA, 0.005f }, { ids::fD, 0.60f }, { ids::fS, 0.65f }, { ids::fR, 0.05f },
+        { ids::aA, 0.003f }, { ids::aD, 0.60f }, { ids::aS, 1.0f }, { ids::aR, 0.06f },
+        { ids::lfoRate, 5.5f }, { ids::modSrc, 0.0f }, { ids::modDst, 0.0f }, { ids::modAmt, 0.06f }
+    };
+    count = sizeof (table) / sizeof (table[0]);
+    return table;
+}
+
+void PhatTrackAudioProcessor::applyPreset (const PresetValue* values, size_t count)
+{
+    for (size_t i = 0; i < count; ++i)
+        if (auto* prm = parameters.getParameter (values[i].id))
+            prm->setValueNotifyingHost (prm->convertTo0to1 (values[i].value));
+}
+
+void PhatTrackAudioProcessor::loadThingOfGold()
+{
+    size_t n = 0;
+    const PresetValue* t = getThingOfGoldPreset (n);
+    applyPreset (t, n);
 }
 
 //==============================================================================

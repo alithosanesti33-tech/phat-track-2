@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(PhatTrack VERSION 0.2.0)
+project(PhatTrack VERSION 0.3.0)
 
 set(JUCE_PATH "" CACHE PATH "Path to the JUCE source folder")
 if(JUCE_PATH)

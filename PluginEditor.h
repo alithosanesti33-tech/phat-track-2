@@ -65,6 +65,12 @@ private:
     int addToggle (const char* id, const char* text);
     void addSection (const char* title, int x, int y, std::initializer_list<int> items);
     void layoutKeys();
+    void refreshPresetList (const juce::String& selectName = {});
+    void presetChosen();
+    void saveCurrentPreset();
+    void deleteCurrentPreset();
+    static juce::File presetFolder();
+    static juce::File presetFile (const juce::String& name);
     void drawWood (juce::Graphics&, juce::Rectangle<int>) const;
 
     static bool isBlackKey (int midi);
@@ -80,6 +86,12 @@ private:
     std::vector<Key> keys;
 
     juce::Label noteLabel, trackLabel;
+
+    // preset bar
+    juce::ComboBox presetBox;
+    juce::TextEditor nameBox;
+    juce::TextButton saveButton { "SAVE" }, deleteButton { "DEL" };
+    juce::StringArray userPresetNames;
     juce::Rectangle<int> displayBounds, keyboardBounds, lampBounds;
 
     float shownMidi = -1.0f;

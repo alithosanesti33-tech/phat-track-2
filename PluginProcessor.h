@@ -57,6 +57,8 @@ namespace ids
     inline constexpr const char* modAmt  = "modamt";
 }
 
+struct PresetValue { const char* id; float value; };
+
 class PhatTrackAudioProcessor final : public juce::AudioProcessor
 {
 public:
@@ -85,6 +87,11 @@ public:
 
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
+
+    // Factory preset support (user presets are handled by the editor)
+    static const PresetValue* getThingOfGoldPreset (size_t& count);
+    void applyPreset (const PresetValue* values, size_t count);
+    void loadThingOfGold();
 
     using APVTS = juce::AudioProcessorValueTreeState;
     APVTS parameters;

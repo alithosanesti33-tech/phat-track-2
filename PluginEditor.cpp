@@ -247,6 +247,26 @@ PhatTrackAudioProcessorEditor::PhatTrackAudioProcessorEditor (PhatTrackAudioProc
     trackLabel.setText ("PLAY A NOTE", juce::dontSendNotification);
     addAndMakeVisible (trackLabel);
 
+    // ---- preset bar ----
+    presetBox.setTextWhenNothingSelected ("PRESETS");
+    presetBox.onChange = [this] { presetChosen(); };
+    addAndMakeVisible (presetBox);
+
+    nameBox.setTextToShowWhenEmpty ("name to save as", juce::Colour (0xff6d675a));
+    nameBox.setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xff0d0d0f));
+    nameBox.setColour (juce::TextEditor::textColourId, kAmber);
+    nameBox.setColour (juce::TextEditor::outlineColourId, juce::Colour (0xff3a3a3e));
+    nameBox.setColour (juce::TextEditor::focusedOutlineColourId, kAmber);
+    addAndMakeVisible (nameBox);
+
+    saveButton.onClick = [this] { saveCurrentPreset(); };
+    addAndMakeVisible (saveButton);
+    deleteButton.onClick = [this] { deleteCurrentPreset(); };
+    addAndMakeVisible (deleteButton);
+
+    refreshPresetList();
+    presetBox.setSelectedId (1, juce::dontSendNotification);   // a fresh plugin opens on "Thing of Gold"
+
     setSize (kWindowW, kWindowH);
     startTimerHz (30);
 }
@@ -255,6 +275,100 @@ PhatTrackAudioProcessorEditor::~PhatTrackAudioProcessorEditor()
 {
     stopTimer();
     setLookAndFeel (nullptr);
+}
+
+//==============================================================================
+// Presets. Factory preset "Thing of Gold" is built in; user presets are small XML
+// files in the user's Application Support folder, so they survive reinstalling the plugin.
+juce::File PhatTrackAudioProcessorEditor::presetFolder()
+{
+    auto dir = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
+                   .getChildFile ("PhatTrack").getChildFile ("Presets");
+    dir.createDirectory();
+    return dir;
+}
+
+juce::File PhatTrackAudioProcessorEditor::presetFile (const juce::String& name)
+{
+    return presetFolder().getChildFile (juce::File::createLegalFileName (name) + ".phatpreset");
+}
+
+void PhatTrackAudioProcessorEditor::refreshPresetList (const juce::String& selectName)
+{
+    userPresetNames.clear();
+    for (const auto& f : presetFolder().findChildFiles (juce::File::findFiles, false, "*.phatpreset"))
+        userPresetNames.add (f.getFileNameWithoutExtension());
+    userPresetNames.sort (true);
+
+    presetBox.clear (juce::dontSendNotification);
+    presetBox.addItem ("Thing of Gold", 1);
+    if (userPresetNames.size() > 0)
+        presetBox.addSeparator();
+    for (int i = 0; i < userPresetNames.size(); ++i)
+        presetBox.addItem (userPresetNames[i], 100 + i);
+
+    const int idx = selectName.isNotEmpty() ? userPresetNames.indexOf (selectName) : -1;
+    if (idx >= 0)
+        presetBox.setSelectedId (100 + idx, juce::dontSendNotification);
+}
+
+void PhatTrackAudioProcessorEditor::presetChosen()
+{
+    const int id = presetBox.getSelectedId();
+
+    if (id == 1)
+    {
+        audioProcessor.loadThingOfGold();
+        nameBox.setText ("", false);
+        return;
+    }
+
+    const int idx = id - 100;
+    if (idx < 0 || idx >= userPresetNames.size())
+        return;
+
+    const auto name = userPresetNames[idx];
+    std::unique_ptr<juce::XmlElement> xml (juce::XmlDocument::parse (presetFile (name)));
+    if (xml != nullptr && xml->hasTagName ("PhatTrackState"))
+    {
+        audioProcessor.parameters.replaceState (juce::ValueTree::fromXml (*xml));
+        nameBox.setText (name, false);
+    }
+}
+
+void PhatTrackAudioProcessorEditor::saveCurrentPreset()
+{
+    juce::String name = nameBox.getText().trim();
+
+    if (name.isEmpty())
+    {
+        int n = 1;
+        while (presetFile ("My Preset " + juce::String (n)).existsAsFile())
+            ++n;
+        name = "My Preset " + juce::String (n);
+    }
+
+    auto state = audioProcessor.parameters.copyState();
+    std::unique_ptr<juce::XmlElement> xml (state.createXml());
+    if (xml == nullptr)
+        return;
+
+    if (presetFile (name).replaceWithText (xml->toString()))
+    {
+        nameBox.setText (name, false);
+        refreshPresetList (juce::File::createLegalFileName (name));
+    }
+}
+
+void PhatTrackAudioProcessorEditor::deleteCurrentPreset()
+{
+    const int idx = presetBox.getSelectedId() - 100;
+    if (idx < 0 || idx >= userPresetNames.size())
+        return;   // the factory preset cannot be deleted
+
+    presetFile (userPresetNames[idx]).deleteFile();
+    nameBox.setText ("", false);
+    refreshPresetList();
 }
 
 //==============================================================================
@@ -325,6 +439,10 @@ void PhatTrackAudioProcessorEditor::resized()
     displayBounds  = juce::Rectangle<int> (330, 14, 440, 62);
     noteLabel.setBounds (displayBounds.getX() + 14, displayBounds.getY() + 3, displayBounds.getWidth() - 28, 34);
     trackLabel.setBounds (displayBounds.getX() + 14, displayBounds.getY() + 39, displayBounds.getWidth() - 28, 18);
+    presetBox.setBounds (790, 16, 230, 24);
+    nameBox.setBounds (790, 46, 118, 24);
+    saveButton.setBounds (912, 46, 52, 24);
+    deleteButton.setBounds (968, 46, 52, 24);
     lampBounds     = juce::Rectangle<int> (1040, 34, 16, 16);
     keyboardBounds = juce::Rectangle<int> (62, 602, 1056, 124);
     layoutKeys();
