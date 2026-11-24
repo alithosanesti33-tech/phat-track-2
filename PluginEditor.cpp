@@ -173,13 +173,13 @@ PhatTrackAudioProcessorEditor::PhatTrackAudioProcessorEditor (PhatTrackAudioProc
 
     // ---- oscillators ----
     const int o1Oct  = addCombo  (ids::o1Oct,  "OCTAVE");
-    const int o1Wave = addKnob   (ids::o1Wave, "WAVE", "", 2);
+    const int o1Wave = addCombo  (ids::o1Wave, "WAVE");
     const int o1Semi = addKnob   (ids::o1Semi, "SEMITONE", " st", 0);
     const int o1Det  = addKnob   (ids::o1Det,  "DETUNE", " ct", 1);
     const int o1Lvl  = addKnob   (ids::o1Lvl,  "LEVEL", "", 2);
 
     const int o2Oct  = addCombo  (ids::o2Oct,  "OCTAVE");
-    const int o2Wave = addKnob   (ids::o2Wave, "WAVE", "", 2);
+    const int o2Wave = addCombo  (ids::o2Wave, "WAVE");
     const int o2Semi = addKnob   (ids::o2Semi, "SEMITONE", " st", 0);
     const int o2Det  = addKnob   (ids::o2Det,  "DETUNE", " ct", 1);
     const int o2Lvl  = addKnob   (ids::o2Lvl,  "LEVEL", "", 2);

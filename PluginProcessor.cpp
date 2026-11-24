@@ -37,14 +37,14 @@ namespace
 
         // oscillator 1
         addChoice (ids::o1Oct,  "Osc 1 Octave", { "16'", "8'", "4'", "2'" }, 1);
-        addFloat  (ids::o1Wave, "Osc 1 Wave", 0.0f, 1.0f, 0.34f);
+        addChoice (ids::o1Wave, "Osc 1 Wave", { "Triangle", "Sawtooth", "Square", "Pulse" }, 1);
         addFloat  (ids::o1Semi, "Osc 1 Semitone", -24.0f, 24.0f, 0.0f, 1.0f, 1.0f);
         addFloat  (ids::o1Det,  "Osc 1 Detune", -50.0f, 50.0f, 0.0f, 1.0f, 0.1f);
         addFloat  (ids::o1Lvl,  "Osc 1 Level", 0.0f, 1.0f, 0.7f);
 
         // oscillator 2
         addChoice (ids::o2Oct,  "Osc 2 Octave", { "16'", "8'", "4'", "2'" }, 1);
-        addFloat  (ids::o2Wave, "Osc 2 Wave", 0.0f, 1.0f, 0.34f);
+        addChoice (ids::o2Wave, "Osc 2 Wave", { "Triangle", "Sawtooth", "Square", "Pulse" }, 1);
         addFloat  (ids::o2Semi, "Osc 2 Semitone", -24.0f, 24.0f, 0.0f, 1.0f, 1.0f);
         addFloat  (ids::o2Det,  "Osc 2 Detune", -50.0f, 50.0f, 7.0f, 1.0f, 0.1f);
         addFloat  (ids::o2Lvl,  "Osc 2 Level", 0.0f, 1.0f, 0.5f);
@@ -172,7 +172,12 @@ void PhatTrackAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     vp.osc1Oct = (int) p.o1Oct->load();      vp.osc2Oct = (int) p.o2Oct->load();
     vp.osc1Semi = p.o1Semi->load();          vp.osc2Semi = p.o2Semi->load();
     vp.osc1Detune = p.o1Det->load();         vp.osc2Detune = p.o2Det->load();
-    vp.osc1Wave = p.o1Wave->load();          vp.osc2Wave = p.o2Wave->load();
+    {
+        // Wave selector index (0 triangle, 1 saw, 2 square, 3 pulse) -> oscillator morph position
+        static const float wavePos[4] = { 0.0f, 0.34f, 0.67f, 1.0f };
+        vp.osc1Wave = wavePos[std::max (0, std::min (3, (int) (p.o1Wave->load() + 0.5f)))];
+        vp.osc2Wave = wavePos[std::max (0, std::min (3, (int) (p.o2Wave->load() + 0.5f)))];
+    }
     vp.osc1Level = p.o1Lvl->load();          vp.osc2Level = p.o2Lvl->load();
     vp.sub = p.sub->load();                  vp.noise = p.noise->load();
     vp.sync = p.sync->load() > 0.5f;
