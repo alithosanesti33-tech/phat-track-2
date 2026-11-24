@@ -116,7 +116,7 @@ void PhatTrackAudioProcessorEditor::timerCallback()
         display.setText (juce::MidiMessage::getMidiNoteName (midi, true, true, 4) + "   " + juce::String (hz, 1) + " Hz", juce::dontSendNotification);
     }
     else display.setText ("WAITING FOR GUITAR INPUT", juce::dontSendNotification);
-    trackerLabel.setText ("TRACK " + juce::String (juce::jroundToInt (conf * 100.0f)) + "%     IN " + juce::String (db, 1) + " dB", juce::dontSendNotification);
+    trackerLabel.setText ("TRACK " + juce::String (juce::roundToInt (conf * 100.0f)) + "%     IN " + juce::String (db, 1) + " dB", juce::dontSendNotification);
 }
 
 void PhatTrackAudioProcessorEditor::paint (juce::Graphics& g)
