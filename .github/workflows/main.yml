@@ -16,6 +16,8 @@ jobs:
         run: cmake -B build -S . -DJUCE_PATH="$HOME/JUCE" -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
       - name: Build AU
         run: cmake --build build --config Release --target PhatTrack_AU -j
+      - name: Sign locally
+        run: codesign --force --deep --sign - build/PhatTrack_artefacts/Release/AU/PhatTrack.component
       - name: Zip component
         run: cd build/PhatTrack_artefacts/Release/AU && ditto -c -k --keepParent PhatTrack.component "$GITHUB_WORKSPACE/PhatTrack-AU.zip"
       - uses: actions/upload-artifact@v4

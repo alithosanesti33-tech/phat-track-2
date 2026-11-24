@@ -1,183 +1,494 @@
 #include "PluginEditor.h"
 
-void PhatTrackLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int w, int h,
-                                             float pos, float start, float end, juce::Slider&)
+namespace
 {
-    const float diameter = (float)juce::jmin (w, h) * 0.70f;
-    const float cx = (float)x + (float)w * 0.5f;
-    const float cy = (float)y + (float)h * 0.48f;
-    const float r = diameter * 0.5f;
-    const float angle = start + pos * (end - start);
-    g.setColour (juce::Colour (0xff090c0e));
-    g.fillEllipse (cx - r - 2, cy - r - 2, diameter + 4, diameter + 4);
-    g.setColour (juce::Colour (0xff30383b));
-    g.fillEllipse (cx - r, cy - r, diameter, diameter);
-    g.setColour (juce::Colour (0xff596164));
-    g.drawEllipse (cx - r, cy - r, diameter, diameter, 1.2f);
-    juce::Path arc;
-    arc.addCentredArc (cx, cy, r + 4, r + 4, 0.0f, start, end, true);
-    g.setColour (juce::Colour (0xff171e21));
-    g.strokePath (arc, juce::PathStrokeType (3.0f));
-    juce::Path valueArc;
-    valueArc.addCentredArc (cx, cy, r + 4, r + 4, 0.0f, start, angle, true);
-    g.setColour (juce::Colour (0xffe87538));
-    g.strokePath (valueArc, juce::PathStrokeType (3.0f));
-    juce::Path pointer;
-    pointer.addRoundedRectangle (-1.7f, -r + 7.0f, 3.4f, r * 0.42f, 1.5f);
-    g.setColour (juce::Colour (0xffffc18b));
-    g.fillPath (pointer, juce::AffineTransform::rotation (angle).translated (cx, cy));
-    g.setColour (juce::Colour (0xff15191b));
-    g.fillEllipse (cx - r * 0.13f, cy - r * 0.13f, r * 0.26f, r * 0.26f);
+    const juce::Colour kAmber   (0xffffb000);
+    const juce::Colour kCream   (0xffe6e0d0);
+    const juce::Colour kPanel   (0xff09090a);
+    const juce::Colour kOutline (0xff2b2b2f);
+
+    constexpr int kWindowW = 1180;
+    constexpr int kWindowH = 744;
+    constexpr int kCheekW  = 46;
+    constexpr int kCellW   = 76;
+    constexpr int kCellH   = 106;
 }
 
+//==============================================================================
+PhatLookAndFeel::PhatLookAndFeel()
+{
+    setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff0d0d0f));
+    setColour (juce::ComboBox::textColourId, kAmber);
+    setColour (juce::ComboBox::outlineColourId, juce::Colour (0xff3a3a3e));
+    setColour (juce::ComboBox::arrowColourId, kCream);
+    setColour (juce::PopupMenu::backgroundColourId, juce::Colour (0xff111113));
+    setColour (juce::PopupMenu::textColourId, kCream);
+    setColour (juce::PopupMenu::highlightedBackgroundColourId, kAmber);
+    setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::black);
+    setColour (juce::TextButton::buttonColourId, juce::Colour (0xff18181a));
+    setColour (juce::TextButton::buttonOnColourId, kAmber);
+    setColour (juce::TextButton::textColourOffId, kCream);
+    setColour (juce::TextButton::textColourOnId, juce::Colours::black);
+}
+
+void PhatLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,
+                                        float pos, float startAngle, float endAngle, juce::Slider&)
+{
+    const float cx = (float) x + (float) width * 0.5f;
+    const float cy = (float) y + (float) height * 0.5f;
+    const float r = std::min ((float) width, (float) height) * 0.40f;
+    const float angle = startAngle + pos * (endAngle - startAngle);
+
+    // tick marks around the knob
+    g.setColour (juce::Colour (0xff8d8778));
+    for (int i = 0; i <= 10; ++i)
+    {
+        const float a = startAngle + (float) i / 10.0f * (endAngle - startAngle);
+        const float s = std::sin (a), c = std::cos (a);
+        g.drawLine (cx + s * (r + 4.0f), cy - c * (r + 4.0f),
+                    cx + s * (r + 8.0f), cy - c * (r + 8.0f),
+                    (i == 0 || i == 10) ? 1.6f : 1.0f);
+    }
+
+    // drop shadow
+    g.setColour (juce::Colour (0x66000000));
+    g.fillEllipse (cx - r + 1.5f, cy - r + 3.0f, r * 2.0f, r * 2.0f);
+
+    // knob body
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff4a4a4e), cx - r * 0.5f, cy - r * 0.7f,
+                                             juce::Colour (0xff0a0a0b), cx + r * 0.7f, cy + r * 0.9f, false));
+    g.fillEllipse (cx - r, cy - r, r * 2.0f, r * 2.0f);
+    g.setColour (juce::Colour (0xff1c1c1f));
+    g.drawEllipse (cx - r, cy - r, r * 2.0f, r * 2.0f, 1.5f);
+
+    // top cap
+    const float rc = r * 0.78f;
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2a2a2d), cx - rc * 0.4f, cy - rc * 0.6f,
+                                             juce::Colour (0xff050506), cx + rc * 0.6f, cy + rc * 0.8f, false));
+    g.fillEllipse (cx - rc, cy - rc, rc * 2.0f, rc * 2.0f);
+
+    // white pointer line
+    juce::Path pointer;
+    pointer.addRectangle (-1.6f, -r * 0.96f, 3.2f, r * 0.5f);
+    g.setColour (juce::Colour (0xfff7f4ea));
+    g.fillPath (pointer, juce::AffineTransform::rotation (angle).translated (cx, cy));
+}
+
+//==============================================================================
+int PhatTrackAudioProcessorEditor::addKnob (const char* id, const char* labelText, const char* suffix, int decimals)
+{
+    auto c = std::make_unique<Control>();
+    c->kind = Kind::knob;
+
+    c->label.setText (labelText, juce::dontSendNotification);
+    c->label.setJustificationType (juce::Justification::centred);
+    c->label.setFont (juce::Font (9.5f, juce::Font::bold));
+    c->label.setColour (juce::Label::textColourId, kCream);
+    addAndMakeVisible (c->label);
+
+    c->slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
+    c->slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 70, 15);
+    c->slider.setRotaryParameters (juce::MathConstants<float>::pi * 1.2f,
+                                   juce::MathConstants<float>::pi * 2.8f, true);
+    c->slider.setColour (juce::Slider::textBoxTextColourId, kAmber);
+    c->slider.setColour (juce::Slider::textBoxBackgroundColourId, juce::Colour (0xff050806));
+    c->slider.setColour (juce::Slider::textBoxOutlineColourId, juce::Colour (0xff2a2a2d));
+    addAndMakeVisible (c->slider);
+
+    if (auto* prm = audioProcessor.parameters.getParameter (id))
+        c->slider.setDoubleClickReturnValue (true, (double) prm->convertFrom0to1 (prm->getDefaultValue()));
+
+    c->sliderAtt = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
+        audioProcessor.parameters, id, c->slider);
+
+    // Show units next to the value (set after the attachment, which installs its own text functions)
+    const juce::String unit (suffix);
+    c->slider.textFromValueFunction = [unit, decimals] (double v) { return juce::String (v, decimals) + unit; };
+    c->slider.valueFromTextFunction = [] (const juce::String& t) { return (double) t.getFloatValue(); };
+    c->slider.updateText();
+
+    controls.push_back (std::move (c));
+    return (int) controls.size() - 1;
+}
+
+int PhatTrackAudioProcessorEditor::addCombo (const char* id, const char* labelText)
+{
+    auto c = std::make_unique<Control>();
+    c->kind = Kind::combo;
+
+    c->label.setText (labelText, juce::dontSendNotification);
+    c->label.setJustificationType (juce::Justification::centred);
+    c->label.setFont (juce::Font (9.5f, juce::Font::bold));
+    c->label.setColour (juce::Label::textColourId, kCream);
+    addAndMakeVisible (c->label);
+
+    if (auto* choice = dynamic_cast<juce::AudioParameterChoice*> (audioProcessor.parameters.getParameter (id)))
+        c->combo.addItemList (choice->choices, 1);
+    addAndMakeVisible (c->combo);
+
+    c->comboAtt = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
+        audioProcessor.parameters, id, c->combo);
+
+    controls.push_back (std::move (c));
+    return (int) controls.size() - 1;
+}
+
+int PhatTrackAudioProcessorEditor::addToggle (const char* id, const char* text)
+{
+    auto c = std::make_unique<Control>();
+    c->kind = Kind::toggle;
+
+    c->button.setButtonText (text);
+    c->button.setClickingTogglesState (true);
+    addAndMakeVisible (c->button);
+
+    c->buttonAtt = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        audioProcessor.parameters, id, c->button);
+
+    controls.push_back (std::move (c));
+    return (int) controls.size() - 1;
+}
+
+void PhatTrackAudioProcessorEditor::addSection (const char* title, int x, int y, std::initializer_list<int> items)
+{
+    Section s;
+    s.title = title;
+    s.x = x;
+    s.y = y;
+    s.items = std::vector<int> (items);
+    sections.push_back (std::move (s));
+}
+
+bool PhatTrackAudioProcessorEditor::isBlackKey (int midi)
+{
+    const int pc = midi % 12;
+    return pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10;
+}
+
+//==============================================================================
 PhatTrackAudioProcessorEditor::PhatTrackAudioProcessorEditor (PhatTrackAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
+    : juce::AudioProcessorEditor (&p), audioProcessor (p)
 {
     setLookAndFeel (&lookAndFeel);
-    setSize (900, 590);
-    title.setText ("PHATTRACK", juce::dontSendNotification);
-    title.setFont (juce::Font (29.0f, juce::Font::bold));
-    title.setColour (juce::Label::textColourId, juce::Colour (0xfff1e8d8));
-    addAndMakeVisible (title);
-    subtitle.setText ("GUITAR-CONTROLLED ANALOG MONOSYNTH", juce::dontSendNotification);
-    subtitle.setFont (juce::Font (10.0f, juce::Font::bold));
-    subtitle.setColour (juce::Label::textColourId, juce::Colour (0xffd17a49));
-    addAndMakeVisible (subtitle);
-    display.setJustificationType (juce::Justification::centredLeft);
-    display.setFont (juce::Font (14.0f, juce::Font::bold));
-    display.setColour (juce::Label::textColourId, juce::Colour (0xffa9d4bc));
-    addAndMakeVisible (display);
-    trackerLabel.setJustificationType (juce::Justification::centredRight);
-    trackerLabel.setFont (juce::Font (10.0f));
-    trackerLabel.setColour (juce::Label::textColourId, juce::Colour (0xff9ba6a2));
-    addAndMakeVisible (trackerLabel);
 
-    addKnob ("oscMix", "OSC MIX");
-    addKnob ("sub", "SUB LEVEL");
-    addKnob ("detune", "OSC 2 TUNE", "ct");
-    addKnob ("cutoff", "CUTOFF", "Hz");
-    addKnob ("resonance", "RESONANCE");
-    addKnob ("filterEnv", "FILTER ENV");
-    addKnob ("attack", "ATTACK", "s");
-    addKnob ("decay", "DECAY", "s");
-    addKnob ("sustain", "SUSTAIN");
-    addKnob ("release", "RELEASE", "s");
-    addKnob ("glide", "GLIDE", "s");
-    addKnob ("drive", "OVERLOAD");
-    addKnob ("lfoRate", "LFO RATE", "Hz");
-    addKnob ("lfoDepth", "LFO AMOUNT");
-    addKnob ("sensitivity", "INPUT THRESH", "dB");
-    addKnob ("dry", "DRY BLEND");
-    addKnob ("output", "OUTPUT");
+    // ---- oscillators ----
+    const int o1Oct  = addCombo  (ids::o1Oct,  "OCTAVE");
+    const int o1Wave = addKnob   (ids::o1Wave, "WAVE", "", 2);
+    const int o1Semi = addKnob   (ids::o1Semi, "SEMITONE", " st", 0);
+    const int o1Det  = addKnob   (ids::o1Det,  "DETUNE", " ct", 1);
+    const int o1Lvl  = addKnob   (ids::o1Lvl,  "LEVEL", "", 2);
 
-    wave1.addItemList ({ "SAW", "SQUARE", "TRIANGLE" }, 1);
-    wave2.addItemList ({ "SAW", "SQUARE", "TRIANGLE" }, 1);
-    wave1.setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff20282b));
-    wave2.setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff20282b));
-    wave1.setColour (juce::ComboBox::textColourId, juce::Colour (0xfff1e8d8));
-    wave2.setColour (juce::ComboBox::textColourId, juce::Colour (0xfff1e8d8));
-    addAndMakeVisible (wave1); addAndMakeVisible (wave2);
-    wave1Attachment = std::make_unique<ComboAttachment> (audioProcessor.parameters, "wave1", wave1);
-    wave2Attachment = std::make_unique<ComboAttachment> (audioProcessor.parameters, "wave2", wave2);
-    startTimerHz (12);
+    const int o2Oct  = addCombo  (ids::o2Oct,  "OCTAVE");
+    const int o2Wave = addKnob   (ids::o2Wave, "WAVE", "", 2);
+    const int o2Semi = addKnob   (ids::o2Semi, "SEMITONE", " st", 0);
+    const int o2Det  = addKnob   (ids::o2Det,  "DETUNE", " ct", 1);
+    const int o2Lvl  = addKnob   (ids::o2Lvl,  "LEVEL", "", 2);
+
+    const int sub    = addKnob   (ids::sub,    "SUB", "", 2);
+    const int noise  = addKnob   (ids::noise,  "NOISE", "", 2);
+    const int sync   = addToggle (ids::sync,   "SYNC");
+
+    // ---- filter and envelopes ----
+    const int cutoff = addKnob (ids::cutoff,  "CUTOFF", " Hz", 0);
+    const int res    = addKnob (ids::res,     "RESONANCE", "", 2);
+    const int keyTrk = addKnob (ids::keyTrk,  "KEY TRACK", "", 2);
+    const int envAmt = addKnob (ids::fEnvAmt, "ENV AMOUNT", "", 2);
+    const int drive  = addKnob (ids::drive,   "DRIVE", "", 2);
+
+    const int fA = addKnob (ids::fA, "ATTACK",  " s", 3);
+    const int fD = addKnob (ids::fD, "DECAY",   " s", 3);
+    const int fS = addKnob (ids::fS, "SUSTAIN", "", 2);
+    const int fR = addKnob (ids::fR, "RELEASE", " s", 3);
+
+    const int aA = addKnob (ids::aA, "ATTACK",  " s", 3);
+    const int aD = addKnob (ids::aD, "DECAY",   " s", 3);
+    const int aS = addKnob (ids::aS, "SUSTAIN", "", 2);
+    const int aR = addKnob (ids::aR, "RELEASE", " s", 3);
+
+    // ---- modulation, master, input ----
+    const int lfoRate = addKnob  (ids::lfoRate, "RATE", " Hz", 2);
+    const int modSrc  = addCombo (ids::modSrc,  "SOURCE");
+    const int modDst  = addCombo (ids::modDst,  "DEST");
+    const int modAmt  = addKnob  (ids::modAmt,  "AMOUNT", "", 2);
+
+    const int octave  = addCombo  (ids::octave,  "OCTAVE");
+    const int tune    = addKnob   (ids::tune,    "FINE TUNE", " ct", 1);
+    const int glide   = addKnob   (ids::glide,   "GLIDE", " s", 2);
+    const int glideOn = addToggle (ids::glideOn, "GLIDE");
+    const int volume  = addKnob   (ids::volume,  "VOLUME", "", 2);
+
+    const int gate    = addKnob   (ids::gate,   "NOISE GATE", " dB", 1);
+    const int sens    = addKnob   (ids::sens,   "SENSITIVITY", " dB", 1);
+    const int dry     = addKnob   (ids::dry,    "DRY MIX", "", 2);
+    const int retrig  = addToggle (ids::retrig, "RETRIG");
+
+    // ---- panel sections (classic left-to-right signal flow) ----
+    const int rowA = 96, rowB = 262, rowC = 428;
+    addSection ("OSCILLATOR 1",     62, rowA, { o1Oct, o1Wave, o1Semi, o1Det, o1Lvl });
+    addSection ("OSCILLATOR 2",    466, rowA, { o2Oct, o2Wave, o2Semi, o2Det, o2Lvl });
+    addSection ("MIXER",           870, rowA, { sub, noise, sync });
+    addSection ("FILTER",           62, rowB, { cutoff, res, keyTrk, envAmt, drive });
+    addSection ("FILTER ENVELOPE", 466, rowB, { fA, fD, fS, fR });
+    addSection ("AMP ENVELOPE",    794, rowB, { aA, aD, aS, aR });
+    addSection ("MODULATION",       62, rowC, { lfoRate, modSrc, modDst, modAmt });
+    addSection ("MASTER",          390, rowC, { octave, tune, glide, glideOn, volume });
+    addSection ("INPUT",           794, rowC, { gate, sens, dry, retrig });
+
+    // ---- readouts ----
+    noteLabel.setJustificationType (juce::Justification::centredLeft);
+    noteLabel.setFont (juce::Font (24.0f, juce::Font::bold));
+    noteLabel.setColour (juce::Label::textColourId, kAmber);
+    noteLabel.setText ("--", juce::dontSendNotification);
+    addAndMakeVisible (noteLabel);
+
+    trackLabel.setJustificationType (juce::Justification::centredLeft);
+    trackLabel.setFont (juce::Font (12.0f, juce::Font::bold));
+    trackLabel.setColour (juce::Label::textColourId, juce::Colour (0xffc99100));
+    trackLabel.setText ("PLAY A NOTE", juce::dontSendNotification);
+    addAndMakeVisible (trackLabel);
+
+    setSize (kWindowW, kWindowH);
+    startTimerHz (30);
 }
 
-PhatTrackAudioProcessorEditor::~PhatTrackAudioProcessorEditor() { setLookAndFeel (nullptr); }
-
-void PhatTrackAudioProcessorEditor::addKnob (const juce::String& id, const juce::String& name, const juce::String& suffix)
+PhatTrackAudioProcessorEditor::~PhatTrackAudioProcessorEditor()
 {
-    Knob k;
-    k.slider = std::make_unique<juce::Slider>();
-    k.slider->setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
-    k.slider->setTextBoxStyle (juce::Slider::TextBoxBelow, false, 58, 17);
-    k.slider->setColour (juce::Slider::textBoxTextColourId, juce::Colour (0xffc7ceca));
-    k.slider->setColour (juce::Slider::textBoxBackgroundColourId, juce::Colour (0xff171d20));
-    k.slider->setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    if (suffix.isNotEmpty()) k.slider->setTextValueSuffix (" " + suffix);
-    addAndMakeVisible (*k.slider);
-    k.label = std::make_unique<juce::Label>();
-    k.label->setText (name, juce::dontSendNotification);
-    k.label->setJustificationType (juce::Justification::centred);
-    k.label->setFont (juce::Font (9.5f, juce::Font::bold));
-    k.label->setColour (juce::Label::textColourId, juce::Colour (0xffd9d2c6));
-    addAndMakeVisible (*k.label);
-    k.attachment = std::make_unique<Attachment> (audioProcessor.parameters, id, *k.slider);
-    knobs.push_back (std::move (k));
+    stopTimer();
+    setLookAndFeel (nullptr);
 }
 
-void PhatTrackAudioProcessorEditor::timerCallback()
+//==============================================================================
+void PhatTrackAudioProcessorEditor::layoutKeys()
 {
-    const float hz = audioProcessor.detectedHz.load();
-    const float conf = audioProcessor.trackingConfidence.load();
-    const float db = audioProcessor.inputLevelDb.load();
-    if (hz > 0.0f)
+    keys.clear();
+
+    int whites = 0;
+    for (int m = lowNote; m <= highNote; ++m)
+        if (! isBlackKey (m))
+            ++whites;
+
+    const float ww = (float) keyboardBounds.getWidth() / (float) whites;
+    const float bw = ww * 0.62f;
+    const float bh = (float) keyboardBounds.getHeight() * 0.62f;
+    const float kx = (float) keyboardBounds.getX();
+    const float ky = (float) keyboardBounds.getY();
+
+    int wi = 0;
+    for (int m = lowNote; m <= highNote; ++m)
     {
-        const int midi = juce::jlimit (0, 127, (int)std::round (69.0 + 12.0 * std::log2 (hz / 440.0f)));
-        display.setText (juce::MidiMessage::getMidiNoteName (midi, true, true, 4) + "   " + juce::String (hz, 1) + " Hz", juce::dontSendNotification);
+        Key k;
+        k.midi = m;
+        k.black = isBlackKey (m);
+        if (! k.black)
+        {
+            k.r = juce::Rectangle<float> (kx + (float) wi * ww, ky, ww, (float) keyboardBounds.getHeight());
+            ++wi;
+        }
+        else
+        {
+            k.r = juce::Rectangle<float> (kx + (float) wi * ww - bw * 0.5f, ky, bw, bh);
+        }
+        keys.push_back (k);
     }
-    else display.setText ("WAITING FOR GUITAR INPUT", juce::dontSendNotification);
-    trackerLabel.setText ("TRACK " + juce::String (juce::roundToInt (conf * 100.0f)) + "%     IN " + juce::String (db, 1) + " dB", juce::dontSendNotification);
-}
-
-void PhatTrackAudioProcessorEditor::paint (juce::Graphics& g)
-{
-    auto bounds = getLocalBounds().toFloat();
-    g.fillAll (juce::Colour (0xff101619));
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff293236), 0, 0, juce::Colour (0xff171e21), 0, (float)getHeight(), false));
-    g.fillRoundedRectangle (bounds.reduced (9.0f), 12.0f);
-    g.setColour (juce::Colour (0xff080c0e));
-    g.drawRoundedRectangle (bounds.reduced (9.0f), 12.0f, 2.0f);
-    g.setColour (juce::Colour (0xffe87538));
-    g.fillRoundedRectangle (20.0f, 19.0f, 5.0f, 48.0f, 2.0f);
-
-    // Distinctive, original synth panel styling: warm hardware accents and a compact status display.
-    g.setColour (juce::Colour (0xff0b1113));
-    g.fillRoundedRectangle (22.0f, 78.0f, (float)getWidth() - 44.0f, 52.0f, 5.0f);
-    g.setColour (juce::Colour (0xff455156));
-    g.drawRoundedRectangle (22.0f, 78.0f, (float)getWidth() - 44.0f, 52.0f, 5.0f, 1.0f);
-    g.setColour (juce::Colour (0xffe87538));
-    g.setFont (juce::Font (9.0f, juce::Font::bold));
-    g.drawText ("OSCILLATORS", 30, 146, 165, 15, juce::Justification::centredLeft);
-    g.drawText ("FILTER", 205, 146, 165, 15, juce::Justification::centredLeft);
-    g.drawText ("AMPLIFIER", 380, 146, 165, 15, juce::Justification::centredLeft);
-    g.drawText ("MOVEMENT + INPUT", 555, 146, 300, 15, juce::Justification::centredLeft);
-    g.setColour (juce::Colour (0xff4a5558));
-    g.drawLine (195.0f, 154.0f, 195.0f, (float)getHeight() - 18.0f, 1.0f);
-    g.drawLine (370.0f, 154.0f, 370.0f, (float)getHeight() - 18.0f, 1.0f);
-    g.drawLine (545.0f, 154.0f, 545.0f, (float)getHeight() - 18.0f, 1.0f);
-    g.setColour (juce::Colour (0xffe87538));
-    g.setFont (juce::Font (8.0f));
-    g.drawText ("OSC 1 WAVE", 35, 442, 100, 15, juce::Justification::centred);
-    g.drawText ("OSC 2 WAVE", 35, 506, 100, 15, juce::Justification::centred);
-    g.setColour (juce::Colour (0xff7d8988));
-    g.setFont (juce::Font (9.0f));
-    g.drawText ("MONO GUITAR INPUT  •  NO MIDI CONVERSION REQUIRED", 25, getHeight() - 25, getWidth() - 50, 14, juce::Justification::centred);
 }
 
 void PhatTrackAudioProcessorEditor::resized()
 {
-    title.setBounds (36, 21, 260, 34);
-    subtitle.setBounds (38, 52, 340, 16);
-    display.setBounds (36, 91, 390, 27);
-    trackerLabel.setBounds (570, 91, 290, 27);
-    const int colW = 175;
-    const int knobW = 78;
-    const int knobH = 105;
-    const int startX = 25;
-    const int topY = 164;
-    const int rowGap = 125;
-    for (size_t i = 0; i < knobs.size(); ++i)
+    for (auto& s : sections)
     {
-        const int group = (int)i / 4;
-        const int inGroup = (int)i % 4;
-        int x = startX + group * colW + (inGroup % 2) * 84;
-        int y = topY + (inGroup / 2) * rowGap;
-        // Final group contains five controls; the fifth sits centered on a third row.
-        if (i >= 12) { x = 555 + ((int)i - 12) * 84; y = topY; }
-        if (i == 16) { x = 597; y = 405; }
-        knobs[i].slider->setBounds (x, y, knobW, knobH);
-        knobs[i].label->setBounds (x - 5, y - 13, knobW + 10, 15);
+        const int n = (int) s.items.size();
+        s.bounds = juce::Rectangle<int> (s.x, s.y, n * kCellW + 16, kCellH + 24);
+
+        for (int i = 0; i < n; ++i)
+        {
+            Control& c = *controls[(size_t) s.items[(size_t) i]];
+            const int cx = s.x + 8 + i * kCellW;
+            const int top = s.y + 22;
+
+            switch (c.kind)
+            {
+                case Kind::knob:
+                    c.label.setBounds (cx, top, kCellW, 14);
+                    c.slider.setBounds (cx, top + 14, kCellW, 84);
+                    break;
+                case Kind::combo:
+                    c.label.setBounds (cx, top, kCellW, 14);
+                    c.combo.setBounds (cx + 3, top + 28, kCellW - 6, 24);
+                    break;
+                case Kind::toggle:
+                    c.button.setBounds (cx + 6, top + 26, kCellW - 12, 26);
+                    break;
+            }
+        }
     }
-    wave1.setBounds (42, 458, 105, 27);
-    wave2.setBounds (42, 522, 105, 27);
+
+    displayBounds  = juce::Rectangle<int> (330, 14, 440, 62);
+    noteLabel.setBounds (displayBounds.getX() + 14, displayBounds.getY() + 3, displayBounds.getWidth() - 28, 34);
+    trackLabel.setBounds (displayBounds.getX() + 14, displayBounds.getY() + 39, displayBounds.getWidth() - 28, 18);
+    lampBounds     = juce::Rectangle<int> (1040, 34, 16, 16);
+    keyboardBounds = juce::Rectangle<int> (62, 602, 1056, 124);
+    layoutKeys();
+}
+
+//==============================================================================
+void PhatTrackAudioProcessorEditor::drawWood (juce::Graphics& g, juce::Rectangle<int> r) const
+{
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff5e3822), (float) r.getX(), 0.0f,
+                                             juce::Colour (0xff361d11), (float) r.getRight(), 0.0f, false));
+    g.fillRect (r);
+
+    juce::Random rnd (1234 + r.getX());
+    for (int i = 0; i < 110; ++i)
+    {
+        const float x = (float) r.getX() + rnd.nextFloat() * (float) r.getWidth();
+        const float y0 = rnd.nextFloat() * (float) r.getHeight();
+        const float len = 60.0f + rnd.nextFloat() * 320.0f;
+        const float drift = (rnd.nextFloat() - 0.5f) * 4.0f;
+        if (rnd.nextBool())
+            g.setColour (juce::Colour::fromFloatRGBA (0.0f, 0.0f, 0.0f, 0.06f + rnd.nextFloat() * 0.18f));
+        else
+            g.setColour (juce::Colour::fromFloatRGBA (1.0f, 0.78f, 0.55f, 0.03f + rnd.nextFloat() * 0.07f));
+        g.drawLine (x, y0, x + drift, y0 + len, 1.0f);
+    }
+
+    g.setColour (juce::Colour (0x30ffffff));
+    g.fillRect (r.getX(), 0, r.getWidth(), 2);
+}
+
+void PhatTrackAudioProcessorEditor::paint (juce::Graphics& g)
+{
+    // panel face
+    g.fillAll (kPanel);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff18181b), 0.0f, 0.0f,
+                                             juce::Colour (0xff060607), 0.0f, (float) getHeight(), false));
+    g.fillRect (kCheekW, 0, getWidth() - 2 * kCheekW, getHeight());
+
+    // wooden end cheeks
+    drawWood (g, juce::Rectangle<int> (0, 0, kCheekW, getHeight()));
+    drawWood (g, juce::Rectangle<int> (getWidth() - kCheekW, 0, kCheekW, getHeight()));
+
+    // title
+    g.setColour (juce::Colour (0xfff2eee2));
+    g.setFont (juce::Font (30.0f, juce::Font::bold));
+    g.drawText ("PHATTRACK", 70, 14, 240, 36, juce::Justification::centredLeft);
+    g.setColour (juce::Colour (0xff9a9486));
+    g.setFont (juce::Font (10.0f, juce::Font::bold));
+    g.drawText ("GUITAR-TO-SYNTH TRACKING MONOSYNTH", 72, 50, 300, 14, juce::Justification::centredLeft);
+
+    // amber display
+    g.setColour (juce::Colour (0xff050806));
+    g.fillRoundedRectangle (displayBounds.toFloat(), 6.0f);
+    g.setColour (juce::Colour (0xff3a3a3e));
+    g.drawRoundedRectangle (displayBounds.toFloat(), 6.0f, 1.5f);
+
+    // gate lamp
+    g.setColour (shownGate ? kAmber : juce::Colour (0xff2a2000));
+    g.fillEllipse (lampBounds.toFloat());
+    g.setColour (juce::Colour (0xff3a3a3e));
+    g.drawEllipse (lampBounds.toFloat(), 1.0f);
+    g.setColour (kCream);
+    g.setFont (juce::Font (9.5f, juce::Font::bold));
+    g.drawText ("GATE", lampBounds.getX() - 14, lampBounds.getBottom() + 3, lampBounds.getWidth() + 28, 12,
+                juce::Justification::centred);
+
+    // section frames
+    for (const auto& s : sections)
+    {
+        g.setColour (kOutline);
+        g.drawRoundedRectangle (s.bounds.toFloat().reduced (1.0f), 5.0f, 1.0f);
+
+        g.setFont (juce::Font (10.5f, juce::Font::bold));
+        const int tw = (int) ((float) s.title.length() * 7.4f) + 16;
+        g.setColour (kPanel);
+        g.fillRect (s.x + 10, s.y - 1, tw, 14);
+        g.setColour (kCream);
+        g.drawText (s.title, s.x + 10, s.y - 1, tw, 14, juce::Justification::centred);
+    }
+
+    // keyboard: the key for the note you are playing lights up
+    const int pressed = shownMidi >= 0.0f ? (int) std::lround (shownMidi) : -1;
+
+    g.setColour (juce::Colours::black);
+    g.fillRect (keyboardBounds.expanded (3, 3));
+
+    for (const auto& k : keys)
+    {
+        if (k.black) continue;
+        const bool down = (k.midi == pressed);
+        auto r = k.r.reduced (0.7f, 0.0f);
+        if (down) r = r.withTrimmedTop (3.0f);
+
+        if (down)
+            g.setGradientFill (juce::ColourGradient (juce::Colour (0xffffd266), r.getX(), r.getY(),
+                                                     juce::Colour (0xffff9d00), r.getX(), r.getBottom(), false));
+        else
+            g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff6f3ea), r.getX(), r.getY(),
+                                                     juce::Colour (0xffd3cebd), r.getX(), r.getBottom(), false));
+        g.fillRoundedRectangle (r, 2.0f);
+
+        if (k.midi % 12 == 0)
+        {
+            auto lr = k.r.toNearestInt();
+            auto labelArea = lr.removeFromBottom (16);
+            g.setColour (juce::Colour (0xff6d675a));
+            g.setFont (juce::Font (9.0f, juce::Font::bold));
+            g.drawText (juce::MidiMessage::getMidiNoteName (k.midi, true, true, 4), labelArea,
+                        juce::Justification::centred);
+        }
+    }
+
+    for (const auto& k : keys)
+    {
+        if (! k.black) continue;
+        const bool down = (k.midi == pressed);
+        auto r = k.r;
+        if (down) r = r.withTrimmedTop (2.0f);
+
+        if (down)
+            g.setGradientFill (juce::ColourGradient (juce::Colour (0xffffb000), r.getX(), r.getY(),
+                                                     juce::Colour (0xffc47a00), r.getX(), r.getBottom(), false));
+        else
+            g.setGradientFill (juce::ColourGradient (juce::Colour (0xff3a3a3d), r.getX(), r.getY(),
+                                                     juce::Colour (0xff070708), r.getX(), r.getBottom(), false));
+        g.fillRoundedRectangle (r, 2.0f);
+    }
+}
+
+//==============================================================================
+void PhatTrackAudioProcessorEditor::timerCallback()
+{
+    const float midi = audioProcessor.playedMidi.load();
+    const bool gate = audioProcessor.gateOpenFlag.load() > 0.5f;
+    const float hz = audioProcessor.detectedHz.load();
+    const float conf = audioProcessor.trackingConfidence.load();
+    const float db = audioProcessor.inputLevelDb.load();
+
+    const int newKey = midi >= 0.0f ? (int) std::lround (midi) : -1;
+    const int oldKey = shownMidi >= 0.0f ? (int) std::lround (shownMidi) : -1;
+    const bool changed = (newKey != oldKey) || (gate != shownGate);
+    shownMidi = midi;
+    shownGate = gate;
+
+    if (changed)
+    {
+        repaint (keyboardBounds.expanded (4, 4));
+        repaint (lampBounds.expanded (16, 16));
+    }
+
+    if (newKey >= 0 && hz > 0.0f)
+    {
+        const float cents = (midi - (float) newKey) * 100.0f;
+        noteLabel.setText (juce::MidiMessage::getMidiNoteName (newKey, true, true, 4)
+                               + "   " + juce::String (hz, 1) + " Hz   "
+                               + (cents >= 0.0f ? "+" : "") + juce::String (juce::roundToInt (cents)) + " ct",
+                           juce::dontSendNotification);
+    }
+    else
+    {
+        noteLabel.setText ("--", juce::dontSendNotification);
+    }
+
+    trackLabel.setText ("TRACK " + juce::String (juce::roundToInt (conf * 100.0f))
+                            + "%     INPUT " + juce::String (db, 1) + " dB",
+                        juce::dontSendNotification);
 }

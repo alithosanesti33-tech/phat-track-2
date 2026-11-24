@@ -5,265 +5,314 @@ namespace
 {
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     {
-        using P = juce::AudioProcessorValueTreeState;
-        std::vector<std::unique_ptr<juce::RangedAudioParameter>> p;
-        auto addFloat = [&p](const char* id, const char* name, float lo, float hi, float def, float skew = 1.0f)
+        std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+
+        auto addFloat = [&params] (const char* id, const char* name, float lo, float hi, float def,
+                                   float skew = 1.0f, float step = 0.001f)
         {
-            juce::NormalisableRange<float> range (lo, hi, 0.001f, skew);
-            p.push_back (std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { id, 1 }, name, range, def));
+            juce::NormalisableRange<float> range (lo, hi, step, skew);
+            params.push_back (std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { id, 1 }, name, range, def));
         };
-        auto addChoice = [&p](const char* id, const char* name, juce::StringArray choices, int def)
+        auto addChoice = [&params] (const char* id, const char* name, juce::StringArray choices, int def)
         {
-            p.push_back (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { id, 1 }, name, choices, def));
+            params.push_back (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { id, 1 }, name, choices, def));
         };
-        addFloat ("oscMix", "Osc Mix", 0.0f, 1.0f, 0.5f);
-        addFloat ("sub", "Sub", 0.0f, 1.0f, 0.18f);
-        addChoice ("wave1", "Osc 1 Wave", { "Saw", "Square", "Triangle" }, 0);
-        addChoice ("wave2", "Osc 2 Wave", { "Saw", "Square", "Triangle" }, 1);
-        addFloat ("detune", "Detune", -30.0f, 30.0f, 7.0f);
-        addFloat ("cutoff", "Cutoff", 80.0f, 12000.0f, 2400.0f, 0.35f);
-        addFloat ("resonance", "Resonance", 0.0f, 1.0f, 0.28f);
-        addFloat ("filterEnv", "Filter Env", 0.0f, 1.0f, 0.45f);
-        addFloat ("attack", "Attack", 0.001f, 2.0f, 0.015f, 0.35f);
-        addFloat ("decay", "Decay", 0.005f, 3.0f, 0.22f, 0.4f);
-        addFloat ("sustain", "Sustain", 0.0f, 1.0f, 0.72f);
-        addFloat ("release", "Release", 0.01f, 4.0f, 0.22f, 0.4f);
-        addFloat ("glide", "Glide", 0.0f, 0.5f, 0.045f, 0.5f);
-        addFloat ("drive", "Drive", 0.0f, 1.0f, 0.22f);
-        addFloat ("lfoRate", "LFO Rate", 0.05f, 12.0f, 5.0f, 0.4f);
-        addFloat ("lfoDepth", "LFO Depth", 0.0f, 1.0f, 0.0f);
-        addFloat ("sensitivity", "Sensitivity", -60.0f, -12.0f, -38.0f);
-        addFloat ("dry", "Dry", 0.0f, 1.0f, 0.0f);
-        addFloat ("output", "Output", 0.0f, 1.5f, 0.8f);
-        return { p.begin(), p.end() };
+        auto addBool = [&params] (const char* id, const char* name, bool def)
+        {
+            params.push_back (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { id, 1 }, name, def));
+        };
+
+        // input / trigger
+        addFloat  (ids::gate,   "Noise Gate", -80.0f, -20.0f, -52.0f, 1.0f, 0.1f);
+        addFloat  (ids::sens,   "Sensitivity", -12.0f, 24.0f, 0.0f, 1.0f, 0.1f);
+        addFloat  (ids::dry,    "Dry Mix", 0.0f, 1.0f, 0.0f);
+        addBool   (ids::retrig, "Envelope Retrigger", true);
+
+        // master
+        addChoice (ids::octave,  "Octave", { "-2", "-1", "0", "+1", "+2" }, 2);
+        addFloat  (ids::tune,    "Fine Tune", -100.0f, 100.0f, 0.0f, 1.0f, 0.1f);
+        addFloat  (ids::glide,   "Glide", 0.0f, 2.0f, 0.12f, 0.45f, 0.001f);
+        addBool   (ids::glideOn, "Glide On", false);
+        addFloat  (ids::volume,  "Volume", 0.0f, 1.5f, 0.8f);
+
+        // oscillator 1
+        addChoice (ids::o1Oct,  "Osc 1 Octave", { "16'", "8'", "4'", "2'" }, 1);
+        addFloat  (ids::o1Wave, "Osc 1 Wave", 0.0f, 1.0f, 0.34f);
+        addFloat  (ids::o1Semi, "Osc 1 Semitone", -24.0f, 24.0f, 0.0f, 1.0f, 1.0f);
+        addFloat  (ids::o1Det,  "Osc 1 Detune", -50.0f, 50.0f, 0.0f, 1.0f, 0.1f);
+        addFloat  (ids::o1Lvl,  "Osc 1 Level", 0.0f, 1.0f, 0.7f);
+
+        // oscillator 2
+        addChoice (ids::o2Oct,  "Osc 2 Octave", { "16'", "8'", "4'", "2'" }, 1);
+        addFloat  (ids::o2Wave, "Osc 2 Wave", 0.0f, 1.0f, 0.34f);
+        addFloat  (ids::o2Semi, "Osc 2 Semitone", -24.0f, 24.0f, 0.0f, 1.0f, 1.0f);
+        addFloat  (ids::o2Det,  "Osc 2 Detune", -50.0f, 50.0f, 7.0f, 1.0f, 0.1f);
+        addFloat  (ids::o2Lvl,  "Osc 2 Level", 0.0f, 1.0f, 0.5f);
+
+        // mixer extras
+        addBool   (ids::sync,  "Osc Sync", false);
+        addFloat  (ids::sub,   "Sub Level", 0.0f, 1.0f, 0.2f);
+        addFloat  (ids::noise, "Noise Level", 0.0f, 1.0f, 0.0f);
+
+        // filter
+        addFloat  (ids::cutoff,  "Cutoff", 20.0f, 18000.0f, 2400.0f, 0.3f, 0.1f);
+        addFloat  (ids::res,     "Resonance", 0.0f, 1.0f, 0.25f);
+        addFloat  (ids::keyTrk,  "Key Track", 0.0f, 1.0f, 0.5f);
+        addFloat  (ids::fEnvAmt, "Filter Env Amount", -1.0f, 1.0f, 0.45f);
+        addFloat  (ids::drive,   "Drive", 0.0f, 1.0f, 0.2f);
+
+        // envelopes
+        addFloat  (ids::fA, "Filter Attack",  0.001f, 8.0f, 0.015f, 0.35f);
+        addFloat  (ids::fD, "Filter Decay",   0.002f, 8.0f, 0.35f,  0.4f);
+        addFloat  (ids::fS, "Filter Sustain", 0.0f,   1.0f, 0.35f);
+        addFloat  (ids::fR, "Filter Release", 0.005f, 8.0f, 0.25f,  0.4f);
+        addFloat  (ids::aA, "Amp Attack",     0.001f, 8.0f, 0.008f, 0.35f);
+        addFloat  (ids::aD, "Amp Decay",      0.002f, 8.0f, 0.3f,   0.4f);
+        addFloat  (ids::aS, "Amp Sustain",    0.0f,   1.0f, 0.8f);
+        addFloat  (ids::aR, "Amp Release",    0.005f, 8.0f, 0.2f,   0.4f);
+
+        // modulation
+        addFloat  (ids::lfoRate, "Mod Rate", 0.05f, 60.0f, 5.0f, 0.4f, 0.01f);
+        addChoice (ids::modSrc,  "Mod Source",
+                   { "Tri", "Square", "Saw", "Ramp", "Filt Env", "Osc 2", "S&H", "Noise" }, 0);
+        addChoice (ids::modDst,  "Mod Destination", { "Pitch", "Osc 2", "Filter", "Wave" }, 0);
+        addFloat  (ids::modAmt,  "Mod Amount", 0.0f, 1.0f, 0.0f);
+
+        return { params.begin(), params.end() };
     }
 }
 
+//==============================================================================
 PhatTrackAudioProcessor::PhatTrackAudioProcessor()
-    : AudioProcessor (BusesProperties().withInput ("Input", juce::AudioChannelSet::stereo(), true)
-                                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-      parameters (*this, nullptr, "PARAMETERS", createParameterLayout())
-{}
-
-void PhatTrackAudioProcessor::PitchTracker::prepare (double sr) { sampleRate = sr; reset(); }
-void PhatTrackAudioProcessor::PitchTracker::reset()
+    : AudioProcessor (BusesProperties()
+                        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
+                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+      parameters (*this, nullptr, "PhatTrackState", createParameterLayout())
 {
-    ring.fill (0.0f); writePos = 0; sinceUpdate = 0; lastHz = 0.0f;
-}
-void PhatTrackAudioProcessor::PitchTracker::push (float x)
-{
-    ring[(size_t) writePos] = x;
-    writePos = (writePos + 1) % frameSize;
-    ++sinceUpdate;
-}
-bool PhatTrackAudioProcessor::PitchTracker::update (float& hz, float& confidence)
-{
-    if (sinceUpdate < 512) return false;
-    sinceUpdate = 0;
-    std::array<float, frameSize> frame {};
-    for (int i = 0; i < frameSize; ++i) frame[(size_t)i] = ring[(size_t)((writePos + i) % frameSize)];
-    float mean = 0.0f;
-    for (float v : frame) mean += v;
-    mean /= (float) frameSize;
-    float energy = 0.0f;
-    for (auto& v : frame) { v -= mean; energy += v * v; }
-    if (energy < 0.00008f) { confidence = 0.0f; return true; }
-
-    constexpr int minLag = 40;   // ~1100 Hz at 44.1 kHz
-    const int maxLag = juce::jmin (900, (int)(sampleRate / 48.0));
-    std::array<float, 901> difference {};
-    for (int lag = minLag; lag <= maxLag; ++lag)
-    {
-        float sum = 0.0f;
-        const int n = frameSize - lag;
-        for (int i = 0; i < n; ++i)
-        {
-            const float d = frame[(size_t)i] - frame[(size_t)(i + lag)];
-            sum += d * d;
-        }
-        difference[(size_t)lag] = sum;
-    }
-    float running = 0.0f;
-    std::array<float, 901> cmnd {};
-    for (int lag = 1; lag <= maxLag; ++lag)
-    {
-        running += difference[(size_t)lag];
-        cmnd[(size_t)lag] = running > 0.0f ? difference[(size_t)lag] * (float)lag / running : 1.0f;
-    }
-    int best = -1;
-    for (int lag = minLag; lag < maxLag; ++lag)
-    {
-        if (cmnd[(size_t)lag] < 0.18f && cmnd[(size_t)lag] <= cmnd[(size_t)(lag + 1)])
-        { best = lag; break; }
-    }
-    if (best < 0)
-    {
-        float lowest = 1.0f;
-        for (int lag = minLag; lag <= maxLag; ++lag)
-            if (cmnd[(size_t)lag] < lowest) { lowest = cmnd[(size_t)lag]; best = lag; }
-        if (best < 0 || lowest > 0.32f) { confidence = 0.0f; return true; }
-    }
-    const float a = cmnd[(size_t)juce::jmax (minLag, best - 1)];
-    const float b = cmnd[(size_t)best];
-    const float c = cmnd[(size_t)juce::jmin (maxLag, best + 1)];
-    const float denom = a - 2.0f * b + c;
-    const float shift = std::abs (denom) > 1.0e-8f ? 0.5f * (a - c) / denom : 0.0f;
-    const float refinedLag = (float) best + juce::jlimit (-0.5f, 0.5f, shift);
-    const float candidate = (float) (sampleRate / refinedLag);
-    confidence = juce::jlimit (0.0f, 1.0f, 1.0f - b);
-    if (candidate < 45.0f || candidate > 1200.0f || confidence < 0.45f) return true;
-    // Reject implausible octave jumps unless the new estimate is clearly stronger.
-    if (lastHz > 0.0f && (candidate > lastHz * 1.9f || candidate < lastHz * 0.52f) && confidence < 0.88f)
-        return true;
-    lastHz = candidate;
-    hz = candidate;
-    return true;
+    auto P = [this] (const char* id) { return parameters.getRawParameterValue (id); };
+    p.gate = P (ids::gate);       p.dry = P (ids::dry);         p.retrig = P (ids::retrig);
+    p.sens = P (ids::sens);
+    p.octave = P (ids::octave);   p.tune = P (ids::tune);       p.glide = P (ids::glide);
+    p.glideOn = P (ids::glideOn); p.volume = P (ids::volume);
+    p.o1Oct = P (ids::o1Oct);     p.o1Wave = P (ids::o1Wave);   p.o1Semi = P (ids::o1Semi);
+    p.o1Det = P (ids::o1Det);     p.o1Lvl = P (ids::o1Lvl);
+    p.o2Oct = P (ids::o2Oct);     p.o2Wave = P (ids::o2Wave);   p.o2Semi = P (ids::o2Semi);
+    p.o2Det = P (ids::o2Det);     p.o2Lvl = P (ids::o2Lvl);
+    p.sync = P (ids::sync);       p.sub = P (ids::sub);         p.noise = P (ids::noise);
+    p.cutoff = P (ids::cutoff);   p.res = P (ids::res);         p.keyTrk = P (ids::keyTrk);
+    p.fEnvAmt = P (ids::fEnvAmt); p.drive = P (ids::drive);
+    p.fA = P (ids::fA); p.fD = P (ids::fD); p.fS = P (ids::fS); p.fR = P (ids::fR);
+    p.aA = P (ids::aA); p.aD = P (ids::aD); p.aS = P (ids::aS); p.aR = P (ids::aR);
+    p.lfoRate = P (ids::lfoRate); p.modSrc = P (ids::modSrc);
+    p.modDst = P (ids::modDst);   p.modAmt = P (ids::modAmt);
 }
 
-void PhatTrackAudioProcessor::prepareToPlay (double sr, int samplesPerBlock)
-{
-    currentSampleRate = sr;
-    tracker.prepare (sr);
-    dryBuffer.setSize (getTotalNumInputChannels(), samplesPerBlock, false, true, true);
-    ampEnv.setSampleRate (sr);
-    resetSynth();
-}
-void PhatTrackAudioProcessor::releaseResources() {}
 bool PhatTrackAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
-    const auto in = layouts.getMainInputChannelSet();
-    const auto out = layouts.getMainOutputChannelSet();
-    return (in == juce::AudioChannelSet::mono() || in == juce::AudioChannelSet::stereo()) && out == in;
+    const auto& in  = layouts.getMainInputChannelSet();
+    const auto& out = layouts.getMainOutputChannelSet();
+    if (out != juce::AudioChannelSet::mono() && out != juce::AudioChannelSet::stereo())
+        return false;
+    if (in == out)
+        return true;
+    return in == juce::AudioChannelSet::mono() && out == juce::AudioChannelSet::stereo();   // mono guitar track, stereo synth
 }
-float PhatTrackAudioProcessor::getParam (const char* id) const
+
+void PhatTrackAudioProcessor::resetState()
 {
-    if (auto* v = parameters.getRawParameterValue (id)) return v->load();
-    return 0.0f;
+    tracker.reset();
+    gateTrigger.reset();
+    voice.reset();
+    rawMidi = slowMidi = smoothMidi = glideMidi = 60.0f;
+    lastClarity = 0.0f; lastHz = 0.0f;
+    haveRaw = false; pitchReady = false; needSnap = true;
+    samplesSinceResult = 1000000;
+    jumpCooldown = 0;
+    validGain = 0.0f; dryGate = 0.0f;
+    detectedHz.store (0.0f);
+    trackingConfidence.store (0.0f);
+    playedMidi.store (-1.0f);
+    gateOpenFlag.store (0.0f);
 }
-float PhatTrackAudioProcessor::oscillator (float phase, int shape) const
+
+void PhatTrackAudioProcessor::prepareToPlay (double sr, int)
 {
-    const float p = phase - std::floor (phase);
-    if (shape == 1) return p < 0.5f ? 1.0f : -1.0f;
-    if (shape == 2) return 1.0f - 4.0f * std::abs (p - 0.5f);
-    return 2.0f * p - 1.0f;
-}
-void PhatTrackAudioProcessor::resetSynth()
-{
-    phase1 = phase2 = lfoPhase = 0.0f;
-    smoothedHz = 0.0f;
-    gateEnvelope = 0.0f;
-    gateOn = false;
-    filter1 = filter2 = filter3 = filter4 = 0.0f;
-    inputFollower = 0.0f;
-    ampEnv.reset();
+    sampleRate = sr;
+    tracker.prepare (sr);
+    gateTrigger.prepare (sr);
+    voice.prepare (sr);
+
+    smoothCoefSlow = phat::coefFromSeconds (0.003f, sr);   // calm pitch smoothing for steady notes
+    smoothCoefFast = phat::coefFromSeconds (0.0005f, sr);  // fast smoothing while bending / diving
+    slowFollowCoef = phat::coefFromSeconds (0.005f, sr);   // reference for note-jump detection
+    validCoef      = phat::coefFromSeconds (0.001f, sr);
+    dryAtk         = phat::coefFromSeconds (0.002f, sr);
+    dryRel         = phat::coefFromSeconds (0.040f, sr);
+
+    resetState();
+    setLatencySamples (0);   // no look-ahead: the plugin adds no latency of its own
 }
 
 void PhatTrackAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     juce::ScopedNoDenormals noDenormals;
-    const int channels = getTotalNumInputChannels();
-    const int samples = buffer.getNumSamples();
-    for (int ch = getTotalNumInputChannels(); ch < getTotalNumOutputChannels(); ++ch) buffer.clear (ch, 0, samples);
-    if (channels == 0) { buffer.clear(); return; }
 
-    dryBuffer.setSize (channels, samples, false, false, true);
-    for (int ch = 0; ch < channels; ++ch) dryBuffer.copyFrom (ch, 0, buffer, ch, 0, samples);
-    const float* inL = dryBuffer.getReadPointer (0);
-    const float* inR = channels > 1 ? dryBuffer.getReadPointer (1) : inL;
+    const int numIn = getTotalNumInputChannels();
+    const int numOut = getTotalNumOutputChannels();
+    const int numSamples = buffer.getNumSamples();
+    for (int ch = numIn; ch < numOut; ++ch)
+        buffer.clear (ch, 0, numSamples);
+    if (numIn < 1 || buffer.getNumChannels() < 1)
+        return;
 
-    const float sensitivity = getParam ("sensitivity");
-    const float threshold = juce::Decibels::decibelsToGain (sensitivity);
-    const float glide = getParam ("glide");
-    const float cutoff = getParam ("cutoff");
-    const float resonance = getParam ("resonance");
-    const float drive = getParam ("drive");
-    const float mix = getParam ("oscMix");
-    const float sub = getParam ("sub");
-    const float detune = getParam ("detune");
-    const float filterAmount = getParam ("filterEnv");
-    const float dry = getParam ("dry");
-    const float output = getParam ("output");
-    const int wave1 = (int)getParam ("wave1");
-    const int wave2 = (int)getParam ("wave2");
-    envParams.attack = getParam ("attack");
-    envParams.decay = getParam ("decay");
-    envParams.sustain = getParam ("sustain");
-    envParams.release = getParam ("release");
-    ampEnv.setParameters (envParams);
+    // ---- parameters (once per block) ----
+    gateTrigger.setThresholdDb (p.gate->load());
 
-    const float lfoRate = getParam ("lfoRate");
-    const float lfoDepth = getParam ("lfoDepth");
-    const float glideCoeff = glide <= 0.0001f ? 1.0f : 1.0f - std::exp (-1.0f / (float)(currentSampleRate * glide));
-    const float feedback = resonance * 3.65f;
-    float blockPeak = 0.0f;
+    phat::VoiceParams vp;
+    vp.osc1Oct = (int) p.o1Oct->load();      vp.osc2Oct = (int) p.o2Oct->load();
+    vp.osc1Semi = p.o1Semi->load();          vp.osc2Semi = p.o2Semi->load();
+    vp.osc1Detune = p.o1Det->load();         vp.osc2Detune = p.o2Det->load();
+    vp.osc1Wave = p.o1Wave->load();          vp.osc2Wave = p.o2Wave->load();
+    vp.osc1Level = p.o1Lvl->load();          vp.osc2Level = p.o2Lvl->load();
+    vp.sub = p.sub->load();                  vp.noise = p.noise->load();
+    vp.sync = p.sync->load() > 0.5f;
+    vp.cutoff = p.cutoff->load();            vp.resonance = p.res->load();
+    vp.keyTrack = p.keyTrk->load();          vp.filterEnvAmt = p.fEnvAmt->load();
+    vp.drive = p.drive->load();
+    vp.fA = p.fA->load(); vp.fD = p.fD->load(); vp.fS = p.fS->load(); vp.fR = p.fR->load();
+    vp.aA = p.aA->load(); vp.aD = p.aD->load(); vp.aS = p.aS->load(); vp.aR = p.aR->load();
+    vp.lfoRate = p.lfoRate->load();
+    vp.modSource = (int) p.modSrc->load();   vp.modDest = (int) p.modDst->load();
+    vp.modAmount = p.modAmt->load();
+    vp.fineTune = p.tune->load();
+    vp.octave = (int) p.octave->load() - 2;
+    vp.volume = p.volume->load();
+    voice.setParams (vp);
 
-    for (int i = 0; i < samples; ++i)
+    const bool retrig = p.retrig->load() > 0.5f;
+    const float sensGain = phat::dbToGain (p.sens->load());   // boosts / trims what the gate and tracker hear
+    const bool stereoIn = numIn > 1;
+    const float dryLevel = p.dry->load();
+    const bool glideOn = p.glideOn->load() > 0.5f;
+    const float glideTime = p.glide->load();
+    const float glideCoef = (glideOn && glideTime > 0.001f) ? phat::coefFromSeconds (glideTime * 0.35f, sampleRate) : 1.0f;
+    const int resultFreshSamples = (int) (0.03 * sampleRate);
+    const int jumpCooldownSamples = (int) (0.04 * sampleRate);
+
+    float* left = buffer.getWritePointer (0);
+    float* right = buffer.getNumChannels() > 1 ? buffer.getWritePointer (1) : nullptr;
+
+    float peak = 0.0f;
+    bool gateIsOpen = false;
+    phat::PitchTracker::Result result;
+
+    for (int i = 0; i < numSamples; ++i)
     {
-        const float input = channels > 1 ? 0.5f * (inL[i] + inR[i]) : inL[i];
-        tracker.push (input);
-        blockPeak = juce::jmax (blockPeak, std::abs (input));
-        float detected = 0.0f, conf = 0.0f;
-        if (tracker.update (detected, conf))
+        const float inL = left[i];
+        const float inR = stereoIn ? right[i] : inL;
+        const float mono = stereoIn ? 0.5f * (inL + inR) : inL;
+        const float detect = mono * sensGain;
+        peak = std::max (peak, std::fabs (detect));
+
+        // ---- gate / onset / tracker ----
+        const auto g = gateTrigger.process (detect);
+        gateIsOpen = g.open;
+        if (samplesSinceResult < 1000000) ++samplesSinceResult;
+
+        if (tracker.push (detect, g.trackerActive, result))
         {
-            trackingConfidence.store (conf);
-            if (detected > 0.0f) detectedHz.store (detected);
+            rawMidi = phat::hzToMidi (result.hz);
+            lastHz = result.hz;
+            lastClarity = result.clarity;
+            haveRaw = true;
+            samplesSinceResult = 0;
+            if (! g.open || ! pitchReady)
+                smoothMidi = glideMidi = slowMidi = rawMidi;   // no smoothing between notes
+            if (g.open)
+                pitchReady = true;
         }
-        const float level = std::abs (input);
-        const float followerCoeff = level > inputFollower
-            ? 1.0f - std::exp (-1.0f / (0.004f * (float)currentSampleRate))
-            : 1.0f - std::exp (-1.0f / (0.055f * (float)currentSampleRate));
-        inputFollower += followerCoeff * (level - inputFollower);
-        const bool newGate = inputFollower > threshold;
-        if (newGate && !gateOn) { gateOn = true; ampEnv.noteOn(); }
-        else if (!newGate && gateOn) { gateOn = false; ampEnv.noteOff(); }
 
-        const float targetHz = detectedHz.load();
-        if (targetHz > 0.0f && trackingConfidence.load() > 0.4f)
-            smoothedHz += (targetHz - smoothedHz) * glideCoeff;
+        if (g.opened)
+        {
+            pitchReady = haveRaw && samplesSinceResult < resultFreshSamples;
+            jumpCooldown = jumpCooldownSamples;
+            voice.noteOn();
+        }
+        else if (g.onset && retrig)
+        {
+            voice.noteOn();   // fresh pluck while a note is ringing
+        }
+        if (g.closed)
+            voice.noteOff();
 
-        const float lfo = std::sin (lfoPhase * juce::MathConstants<float>::twoPi);
-        lfoPhase += lfoRate / (float)currentSampleRate;
-        if (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
-        const float vibrato = std::pow (2.0f, (lfo * lfoDepth * 0.35f) / 12.0f);
-        const float f1 = smoothedHz * vibrato;
-        const float f2 = f1 * std::pow (2.0f, detune / 1200.0f);
-        const float inc1 = juce::jlimit (0.0f, 0.45f, f1 / (float)currentSampleRate);
-        const float inc2 = juce::jlimit (0.0f, 0.45f, f2 / (float)currentSampleRate);
-        phase1 += inc1; phase2 += inc2;
-        if (phase1 >= 1.0f) phase1 -= 1.0f;
-        if (phase2 >= 1.0f) phase2 -= 1.0f;
-        float osc = smoothedHz > 0.0f ? oscillator (phase1, wave1) * (1.0f - mix) + oscillator (phase2, wave2) * mix : 0.0f;
-        // A sub-octave square adds weight without changing the tracked note.
-        if (smoothedHz > 0.0f) osc = osc * (1.0f - sub * 0.45f) + (phase1 < 0.5f ? 1.0f : -1.0f) * sub * 0.45f;
-        const float env = ampEnv.getNextSample();
-        const float filterEnv = 0.18f + env * filterAmount * 2.5f;
-        const float fc = juce::jlimit (40.0f, 16000.0f, cutoff * filterEnv);
-        const float g = 1.0f - std::exp (-juce::MathConstants<float>::twoPi * fc / (float)currentSampleRate);
-        float x = std::tanh (osc * (1.0f + drive * 7.0f) - feedback * filter4 * 0.22f);
-        filter1 += g * (x - filter1);
-        filter2 += g * (filter1 - filter2);
-        filter3 += g * (filter2 - filter3);
-        filter4 += g * (filter3 - filter4);
-        const float synth = std::tanh (filter4 * (1.0f + drive * 1.5f)) * env * output;
-        const float outL = synth * (1.0f - dry) + inL[i] * dry;
-        const float outR = synth * (1.0f - dry) + inR[i] * dry;
-        buffer.setSample (0, i, outL);
-        if (buffer.getNumChannels() > 1) buffer.setSample (1, i, outR);
+        // ---- discrete note change (hammer-on / pull-off / new string) ----
+        slowMidi += slowFollowCoef * (rawMidi - slowMidi);
+        if (jumpCooldown > 0)
+        {
+            --jumpCooldown;
+        }
+        else if (g.open && pitchReady && std::fabs (rawMidi - slowMidi) > 0.6f)
+        {
+            slowMidi = rawMidi;
+            jumpCooldown = jumpCooldownSamples;
+            if (retrig) voice.noteOn();
+        }
+
+        // ---- pitch smoothing: calm for steady notes, quick for bends / dives ----
+        const float err = rawMidi - smoothMidi;
+        const float aerr = std::fabs (err);
+        if (aerr > 1.5f)
+        {
+            smoothMidi = rawMidi;
+        }
+        else
+        {
+            const float t = phat::clampf ((aerr - 0.03f) / 0.30f, 0.0f, 1.0f);
+            smoothMidi += (smoothCoefSlow + (smoothCoefFast - smoothCoefSlow) * t) * err;
+        }
+        glideMidi += glideCoef * (smoothMidi - glideMidi);
+
+        // ---- synth + dry ----
+        const float validTarget = (pitchReady && haveRaw) ? 1.0f : 0.0f;
+        validGain += validCoef * (validTarget - validGain);
+        dryGate += (g.open ? dryAtk : dryRel) * ((g.open ? 1.0f : 0.0f) - dryGate);
+
+        const float synth = voice.tick (glideMidi) * validGain;
+        const float dryAmt = dryLevel * dryGate;
+        left[i] = synth + inL * dryAmt;
+        if (right != nullptr)
+            right[i] = synth + inR * dryAmt;
     }
-    inputLevelDb.store (juce::Decibels::gainToDecibels (blockPeak, -100.0f));
+
+    // ---- values for the editor ----
+    inputLevelDb.store (juce::Decibels::gainToDecibels (peak, -100.0f));
+    trackingConfidence.store (lastClarity);
+    gateOpenFlag.store (gateIsOpen ? 1.0f : 0.0f);
+    detectedHz.store ((gateIsOpen && pitchReady) ? lastHz : 0.0f);
+    playedMidi.store ((gateIsOpen && pitchReady) ? rawMidi : -1.0f);
 }
 
-juce::AudioProcessorEditor* PhatTrackAudioProcessor::createEditor() { return new PhatTrackAudioProcessorEditor (*this); }
-void PhatTrackAudioProcessor::getStateInformation (juce::MemoryBlock& dest)
+//==============================================================================
+juce::AudioProcessorEditor* PhatTrackAudioProcessor::createEditor()
+{
+    return new PhatTrackAudioProcessorEditor (*this);
+}
+
+void PhatTrackAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     auto state = parameters.copyState();
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
-    copyXmlToBinary (*xml, dest);
-}
-void PhatTrackAudioProcessor::setStateInformation (const void* data, int size)
-{
-    std::unique_ptr<juce::XmlElement> xml (getXmlFromBinary (data, size));
-    if (xml && xml->hasTagName (parameters.state.getType())) parameters.replaceState (juce::ValueTree::fromXml (*xml));
+    copyXmlToBinary (*xml, destData);
 }
 
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new PhatTrackAudioProcessor(); }
+void PhatTrackAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+{
+    std::unique_ptr<juce::XmlElement> xml (getXmlFromBinary (data, sizeInBytes));
+    if (xml != nullptr && xml->hasTagName (parameters.state.getType()))
+        parameters.replaceState (juce::ValueTree::fromXml (*xml));
+}
+
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+    return new PhatTrackAudioProcessor();
+}

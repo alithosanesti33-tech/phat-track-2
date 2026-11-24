@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(PhatTrack VERSION 0.1.0)
+project(PhatTrack VERSION 0.2.0)
 
 set(JUCE_PATH "" CACHE PATH "Path to the JUCE source folder")
 if(JUCE_PATH)
@@ -15,7 +15,7 @@ juce_add_plugin(PhatTrack
     PLUGIN_CODE PhTk
     FORMATS AU VST3 Standalone
     PRODUCT_NAME "PhatTrack"
-    DESCRIPTION "Monophonic guitar-to-synth instrument inspired by classic analog monosynths"
+    DESCRIPTION "Guitar-to-synth tracking monosynth"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
