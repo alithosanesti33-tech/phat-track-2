@@ -10,25 +10,14 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-
       - name: Get JUCE
         run: git clone --depth 1 --branch 8.0.6 https://github.com/juce-framework/JUCE.git "$HOME/JUCE"
-
-      - name: Configure (universal: Apple Silicon + Intel)
-        run: >
-          cmake -B build -S .
-          -DJUCE_PATH="$HOME/JUCE"
-          -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
-
+      - name: Configure
+        run: cmake -B build -S . -DJUCE_PATH="$HOME/JUCE" -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
       - name: Build AU
         run: cmake --build build --config Release --target PhatTrack_AU -j
-
       - name: Zip component
-        run: |
-          cd build/PhatTrack_artefacts/Release/AU
-          ditto -c -k --keepParent PhatTrack.component "$GITHUB_WORKSPACE/PhatTrack-AU.zip"
-
+        run: cd build/PhatTrack_artefacts/Release/AU && ditto -c -k --keepParent PhatTrack.component "$GITHUB_WORKSPACE/PhatTrack-AU.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: PhatTrack-AU
